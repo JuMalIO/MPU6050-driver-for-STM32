@@ -1,6 +1,7 @@
 #ifndef __mpu6050_H
 #define __mpu6050_H
 
+
 #include <stdint.h>
 
 #define MPU6050_GYRO_SCALE_FACTOR_FS_SEL_250 131.0
@@ -77,5 +78,6 @@ void MPU6050_DmpGetEuler(float* data, MPU6050_Quaternion* q);
 void MPU6050_DmpGetYawPitchRoll(float* data, MPU6050_Quaternion* q, MPU6050_VectorFloat* gravity);
 void MPU6050_DmpGetLinearAccel(MPU6050_VectorInt16 *v, MPU6050_VectorInt16 *vRaw, MPU6050_VectorFloat *gravity);
 void MPU6050_DmpGetLinearAccelInWorld(MPU6050_VectorInt16 *v, MPU6050_VectorInt16 *vReal, MPU6050_Quaternion *q);
+
 
 #endif /*__ mpu6050_H */
