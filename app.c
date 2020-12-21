@@ -5,12 +5,12 @@
 
 // uncomment "OUTPUT_RAW_NON_DMP" if you want to see the actual
 // raw values without using DMP
-#define OUTPUT_RAW_NON_DMP
+//#define OUTPUT_RAW_NON_DMP
 
 // uncomment "OUTPUT_READABLE_QUATERNION" if you want to see the actual
 // quaternion components in a [w, x, y, z] format (not best for parsing
 // on a remote host such as Processing or something though)
-//#define OUTPUT_READABLE_QUATERNION
+#define OUTPUT_READABLE_QUATERNION
 
 // uncomment "OUTPUT_READABLE_EULER" if you want to see Euler angles
 // (in degrees) calculated from the quaternions coming from the FIFO.
@@ -38,19 +38,21 @@
 // is present in this case). Could be quite handy in some cases.
 //#define OUTPUT_READABLE_WORLDACCEL
 
+#define TEST_SLEEP_EVETY_5_SEC
+
 // MPU control/status vars
 _Bool ready = 0;
-uint8_t initStatus;			// return status after each device operation (0 = success, !0 = error)
+uint8_t initStatus;                          // return status after each device operation (0 = success, !0 = error)
 uint8_t fifoBuffer[MPU6050_DMP_PACKET_SIZE]; // FIFO storage buffer
 
 // orientation/motion vars
-MPU6050_Quaternion q;					 // [w, x, y, z]				 quaternion container
-MPU6050_VectorInt16 aa;				 // [x, y, z]						accel sensor measurements
-MPU6050_VectorInt16 aaReal;		 // [x, y, z]						gravity-free accel sensor measurements
-MPU6050_VectorInt16 aaWorld;		// [x, y, z]						world-frame accel sensor measurements
-MPU6050_VectorFloat gravity;		// [x, y, z]						gravity vector
-float euler[3];				 // [psi, theta, phi]		Euler angle container
-float ypr[3];					 // [yaw, pitch, roll]	 yaw/pitch/roll container and gravity vector
+MPU6050_Quaternion q;          // [w, x, y, z]       quaternion container
+MPU6050_VectorInt16 aa;        // [x, y, z]          accel sensor measurements
+MPU6050_VectorInt16 aaReal;    // [x, y, z]          gravity-free accel sensor measurements
+MPU6050_VectorInt16 aaWorld;   // [x, y, z]          world-frame accel sensor measurements
+MPU6050_VectorFloat gravity;   // [x, y, z]          gravity vector
+float euler[3];                // [psi, theta, phi]  Euler angle container
+float ypr[3];                  // [yaw, pitch, roll] yaw/pitch/roll container and gravity vector
 int16_t ax, ay, az, temp, gx, gy, gz;
 
 void APP_Init(void)
@@ -206,18 +208,20 @@ void APP_Run(void)
 	
 	HAL_Delay(20);
 	
-//	if (sleepTimer > 250)
-//	{
-//		sleep = !sleep;
-//		printf("sleeping: %d\r\n", sleep);
-//		printf("success? %d\r\n", MPU6050_DmpSetSleepEnabled(sleep));
-//		sleepTimer = 0;
-//		HAL_Delay(1000);
-//	}
-//	else
-//	{
-//		sleepTimer++;
-//	}
+#ifdef TEST_SLEEP_EVETY_5_SEC
+	if (sleepTimer > 250)
+	{
+		sleepTimer = 0;
+		sleep = !sleep;
+		printf("sleeping: %d\r\n", sleep);
+		MPU6050_SetSleepEnabled(sleep);
+		HAL_Delay(1000);
+	}
+	else
+	{
+		sleepTimer++;
+	}
+#endif
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
