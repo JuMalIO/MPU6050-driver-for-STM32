@@ -7,42 +7,38 @@
 
 extern I2C_HandleTypeDef hi2c1;
 
-void ReadByte(uint8_t address, uint8_t subAddress, uint8_t* dest)
+HAL_StatusTypeDef ReadByte(uint8_t address, uint8_t subAddress, uint8_t* dest)
 {	
-	HAL_I2C_Mem_Read(&hi2c1, address, subAddress, 1, dest, 1, 100);
+	return HAL_I2C_Mem_Read(&hi2c1, address, subAddress, 1, dest, 1, 100);
 }
 
-void ReadBytes(uint8_t address, uint8_t subAddress, uint8_t count, uint8_t* dest)
+HAL_StatusTypeDef ReadBytes(uint8_t address, uint8_t subAddress, uint8_t count, uint8_t* dest)
 {	
-	HAL_I2C_Mem_Read(&hi2c1, address, subAddress, 1, dest, count, 100);
+	return HAL_I2C_Mem_Read(&hi2c1, address, subAddress, 1, dest, count, 100);
 }
 
-void WriteByte(uint8_t address, uint8_t subAddress, uint8_t data)
+HAL_StatusTypeDef WriteByte(uint8_t address, uint8_t subAddress, uint8_t data)
 {
-	HAL_I2C_Mem_Write(&hi2c1, address, subAddress, 1, &data, 1, 100);
+	return HAL_I2C_Mem_Write(&hi2c1, address, subAddress, 1, &data, 1, 100);
 }
 
-void WriteBytes(uint8_t address, uint8_t subAddress, uint8_t count, uint8_t* data)
+HAL_StatusTypeDef WriteBytes(uint8_t address, uint8_t subAddress, uint8_t count, uint8_t* data)
 {
-	HAL_I2C_Mem_Write(&hi2c1, address, subAddress, 1, data, count, 100);
+	return HAL_I2C_Mem_Write(&hi2c1, address, subAddress, 1, data, count, 100);
 }
 
 void ReadWord(uint8_t devAddr, uint8_t regAddr, uint16_t* data)
 {
 	uint8_t d[2];
-	
 	HAL_I2C_Mem_Read(&hi2c1, devAddr, regAddr, 1, d, 2, 100);
-	
 	*data = (d[0] << 8) | d[1];
 }
 
 void WriteWord(uint8_t devAddr, uint8_t regAddr, uint16_t data)
 {
 	uint8_t d[2];
-	
 	d[0] = (uint8_t)(data >> 8);
 	d[1] = (uint8_t)data;
-	
 	HAL_I2C_Mem_Write(&hi2c1, devAddr, regAddr, 1, d, 2, 100);
 }
 
@@ -127,52 +123,50 @@ void MPU6050_GetAllRaw(int16_t* ax, int16_t* ay, int16_t* az, int16_t* temp, int
 uint8_t MPU6050_GetDeviceId(void)
 {
 	uint8_t data;
-	
 	ReadBits(MPU6050_ADDRESS, MPU6050_RA_WHO_AM_I, MPU6050_WHO_AM_I_BIT, MPU6050_WHO_AM_I_LENGTH, &data);
-
 	return data;
 }
 
 int16_t MPU6050_GetXAccelOffset(void)
 {
-	uint16_t d;
-	ReadWord(MPU6050_ADDRESS, MPU6050_RA_XA_OFFS_H, &d);
-	return d;
+	uint16_t data;
+	ReadWord(MPU6050_ADDRESS, MPU6050_RA_XA_OFFS_H, &data);
+	return data;
 }
 
 int16_t MPU6050_GetYAccelOffset(void)
 {
-	uint16_t d;
-	ReadWord(MPU6050_ADDRESS, MPU6050_RA_YA_OFFS_H, &d);
-	return d;
+	uint16_t data;
+	ReadWord(MPU6050_ADDRESS, MPU6050_RA_YA_OFFS_H, &data);
+	return data;
 }
 
 int16_t MPU6050_GetZAccelOffset(void)
 {
-	uint16_t d;
-	ReadWord(MPU6050_ADDRESS, MPU6050_RA_ZA_OFFS_H, &d);
-	return d;
+	uint16_t data;
+	ReadWord(MPU6050_ADDRESS, MPU6050_RA_ZA_OFFS_H, &data);
+	return data;
 }
 
 int16_t MPU6050_GetXGyroOffset(void)
 {
-	uint16_t d;
-	ReadWord(MPU6050_ADDRESS, MPU6050_RA_XG_OFFS_USRH, &d);
-	return d;
+	uint16_t data;
+	ReadWord(MPU6050_ADDRESS, MPU6050_RA_XG_OFFS_USRH, &data);
+	return data;
 }
 
 int16_t MPU6050_GetYGyroOffset(void)
 {
-	uint16_t d;
-	ReadWord(MPU6050_ADDRESS, MPU6050_RA_YG_OFFS_USRH, &d);
-	return d;
+	uint16_t data;
+	ReadWord(MPU6050_ADDRESS, MPU6050_RA_YG_OFFS_USRH, &data);
+	return data;
 }
 
 int16_t MPU6050_GetZGyroOffset(void)
 {
-	uint16_t d;
-	ReadWord(MPU6050_ADDRESS, MPU6050_RA_ZG_OFFS_USRH, &d);
-	return d;
+	uint16_t data;
+	ReadWord(MPU6050_ADDRESS, MPU6050_RA_ZG_OFFS_USRH, &data);
+	return data;
 }
 
 void MPU6050_SetXAccelOffset(int16_t offset)
@@ -223,15 +217,19 @@ void MPU6050_ResetFIFO(void)
 uint16_t MPU6050_GetFIFOCount(void)
 {
 	uint16_t data;
-	
 	ReadWord(MPU6050_ADDRESS, MPU6050_RA_FIFO_COUNTH, &data);
-
 	return data;
 }
 
 void MPU6050_SetSleepEnabled(_Bool enabled)
 {
 	WriteBit(MPU6050_ADDRESS, MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_SLEEP_BIT, enabled);
+}
+
+void MPU6050_DmpSetSleepEnabled(_Bool enabled)
+{
+	uint8_t data = enabled ? 0x41 : 0x01;
+	while (WriteByte(MPU6050_ADDRESS, MPU6050_RA_PWR_MGMT_1, data) == HAL_BUSY);
 }
 
 void MPU6050_SetClockSource(uint8_t source)
@@ -260,16 +258,15 @@ void MPU6050_SetMemoryStartAddress(uint8_t address)
 	WriteByte(MPU6050_ADDRESS, MPU6050_RA_MEM_START_ADDR, address);
 }
 
-void MPU6050_WriteMemoryBlock(const uint8_t *data, uint16_t dataSize, uint8_t bank, uint8_t address)
+void MPU6050_WriteMemoryBlock(const uint8_t* data, uint16_t dataSize, uint8_t bank, uint8_t address)
 {
 	MPU6050_SetMemoryBank(bank);
 	MPU6050_SetMemoryStartAddress(address);
-	
+
 	uint8_t chunkSize;
-	uint8_t* progBuffer; /*= ProgBuffer;static uint8_t ProgBuffer[MPU6050_DMP_MEMORY_CHUNK_SIZE];*/
-	uint16_t i;
-	
-	for (i = 0; i < dataSize;)
+	uint8_t* progBuffer;
+
+	for (uint16_t i = 0; i < dataSize;)
 	{
 		// determine correct chunk size according to bank position and data size
 		chunkSize = MPU6050_DMP_MEMORY_CHUNK_SIZE;
@@ -547,7 +544,7 @@ void MPU6050_DmpGetYawPitchRoll(float* data, MPU6050_Quaternion* q, MPU6050_Vect
 	data[2] = atan2(gravity->y, gravity->z);
 	if (gravity -> z < 0)
 	{
-		if(data[1] > 0)
+		if (data[1] > 0)
 		{
 			data[1] = M_PI - data[1]; 
 		}
