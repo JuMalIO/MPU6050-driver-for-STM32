@@ -214,7 +214,11 @@ void APP_Run(void)
 		sleepTimer = 0;
 		sleep = !sleep;
 		printf("sleeping: %d\r\n", sleep);
+#ifdef OUTPUT_RAW_NON_DMP
 		MPU6050_SetSleepEnabled(sleep);
+#else
+		MPU6050_DmpSetSleepEnabled(sleep);
+#endif
 		HAL_Delay(1000);
 	}
 	else
