@@ -69,8 +69,13 @@ typedef struct __MPU6050_VectorFloat
 #define MPU6050_DMP_PACKET_SIZE 28
 
 _Bool MPU6050_DmpInit(void);
+
 void MPU6050_SetDMPEnabled(_Bool enabled);
+
+void MPU6050_DmpSetSleepEnabled(_Bool enabled);
+
 void MPU6050_DmpOnIntGetCurrentFIFOPacket(uint8_t* fifoBuffer);
+
 void MPU6050_DmpGetQuaternion(MPU6050_Quaternion *q, const uint8_t* packet);
 void MPU6050_DmpGetAccel(MPU6050_VectorInt16 *v, const uint8_t* packet);
 void MPU6050_DmpGetGravity(MPU6050_VectorFloat* v, MPU6050_Quaternion* q);
