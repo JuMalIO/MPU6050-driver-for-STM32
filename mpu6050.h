@@ -68,6 +68,10 @@ typedef struct __MPU6050_VectorFloat
 #define M_PI 3.14159265358979323846f
 #define MPU6050_DMP_PACKET_SIZE 28
 
+#ifndef MPU6050_DMP_SLEEP_ENABLED_TIMEOUT 
+#define MPU6050_DMP_SLEEP_ENABLED_TIMEOUT 256
+#endif
+
 _Bool MPU6050_DmpInit(void);
 
 void MPU6050_SetDMPEnabled(_Bool enabled);
