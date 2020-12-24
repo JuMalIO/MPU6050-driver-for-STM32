@@ -1,60 +1,62 @@
-#include "mpu6050.h"
-#include "mpu6050_defs.h"
 #include "main.h"
+#include "mpu6050.h"
+#include "mpu6050_def.h"
 #include <math.h>
 
 #define MPU6050_ADDRESS (MPU6050_DEFAULT_ADDRESS << 1)
+#define MPU6050_I2C_TIMEOUT 100
 
 extern I2C_HandleTypeDef hi2c1;
 
 HAL_StatusTypeDef ReadByte(uint8_t address, uint8_t subAddress, uint8_t* dest)
 {	
-	return HAL_I2C_Mem_Read(&hi2c1, address, subAddress, 1, dest, 1, 100);
+	return HAL_I2C_Mem_Read(&hi2c1, address, subAddress, 1, dest, 1, MPU6050_I2C_TIMEOUT);
 }
 
 HAL_StatusTypeDef ReadBytes(uint8_t address, uint8_t subAddress, uint8_t count, uint8_t* dest)
 {	
-	return HAL_I2C_Mem_Read(&hi2c1, address, subAddress, 1, dest, count, 100);
+	return HAL_I2C_Mem_Read(&hi2c1, address, subAddress, 1, dest, count, MPU6050_I2C_TIMEOUT);
 }
 
 HAL_StatusTypeDef WriteByte(uint8_t address, uint8_t subAddress, uint8_t data)
 {
-	return HAL_I2C_Mem_Write(&hi2c1, address, subAddress, 1, &data, 1, 100);
+	return HAL_I2C_Mem_Write(&hi2c1, address, subAddress, 1, &data, 1, MPU6050_I2C_TIMEOUT);
 }
 
 HAL_StatusTypeDef WriteBytes(uint8_t address, uint8_t subAddress, uint8_t count, uint8_t* data)
 {
-	return HAL_I2C_Mem_Write(&hi2c1, address, subAddress, 1, data, count, 100);
+	return HAL_I2C_Mem_Write(&hi2c1, address, subAddress, 1, data, count, MPU6050_I2C_TIMEOUT);
 }
 
-void ReadWord(uint8_t devAddr, uint8_t regAddr, uint16_t* data)
+HAL_StatusTypeDef ReadWord(uint8_t devAddr, uint8_t regAddr, uint16_t* data)
 {
-	uint8_t d[2];
-	HAL_I2C_Mem_Read(&hi2c1, devAddr, regAddr, 1, d, 2, 100);
-	*data = (d[0] << 8) | d[1];
+	uint8_t buffer[2];
+	HAL_StatusTypeDef status = HAL_I2C_Mem_Read(&hi2c1, devAddr, regAddr, 1, buffer, 2, MPU6050_I2C_TIMEOUT);
+	*data = (buffer[0] << 8) | buffer[1];
+	return status;
 }
 
-void WriteWord(uint8_t devAddr, uint8_t regAddr, uint16_t data)
+HAL_StatusTypeDef WriteWord(uint8_t devAddr, uint8_t regAddr, uint16_t data)
 {
-	uint8_t d[2];
-	d[0] = (uint8_t)(data >> 8);
-	d[1] = (uint8_t)data;
-	HAL_I2C_Mem_Write(&hi2c1, devAddr, regAddr, 1, d, 2, 100);
+	uint8_t buffer[2];
+	buffer[0] = (uint8_t)(data >> 8);
+	buffer[1] = (uint8_t)data;
+	return HAL_I2C_Mem_Write(&hi2c1, devAddr, regAddr, 1, buffer, 2, MPU6050_I2C_TIMEOUT);
 }
 
 void WriteBit(uint8_t devAddr, uint8_t regAddr, uint8_t bitNum, uint8_t data)
 {
-	uint8_t b;
-	ReadByte(devAddr, regAddr, &b);
-	b = (data != 0) ? (b | (1 << bitNum)) : (b & ~(1 << bitNum));
-	WriteByte(devAddr, regAddr, b);
+	uint8_t byte;
+	ReadByte(devAddr, regAddr, &byte);
+	byte = (data != 0) ? (byte | (1 << bitNum)) : (byte & ~(1 << bitNum));
+	WriteByte(devAddr, regAddr, byte);
 }
 
 void WriteBits(uint8_t devAddr, uint8_t regAddr, uint8_t bitStart, uint8_t length, uint8_t data)
 {
-	//			010 value to write
+	//      010 value to write
 	// 76543210 bit numbers
-	//		xxx	 args: bitStart=4, length=3
+	//      xxx args: bitStart=4, length=3
 	// 00011100 mask byte
 	// 10101111 original value (sample)
 	// 10100011 original & ~mask
@@ -73,9 +75,9 @@ void ReadBits(uint8_t devAddr, uint8_t regAddr, uint8_t bitStart, uint8_t length
 {
 	// 01101001 read byte
 	// 76543210 bit numbers
-	//		xxx	 args: bitStart=4, length=3
-	//		010	 masked
-	//	 -> 010 shifted
+	//      xxx args: bitStart=4, length=3
+	//      010 masked
+	//   -> 010 shifted
 	uint8_t b;
 	ReadByte(devAddr, regAddr, &b);
 	uint8_t mask = ((1 << length) - 1) << (bitStart - length + 1);
@@ -214,13 +216,6 @@ void MPU6050_ResetFIFO(void)
 	WriteBit(MPU6050_ADDRESS, MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_FIFO_RESET_BIT, 1);
 }
 
-uint16_t MPU6050_GetFIFOCount(void)
-{
-	uint16_t data;
-	ReadWord(MPU6050_ADDRESS, MPU6050_RA_FIFO_COUNTH, &data);
-	return data;
-}
-
 void MPU6050_SetSleepEnabled(_Bool enabled)
 {
 	WriteBit(MPU6050_ADDRESS, MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_SLEEP_BIT, enabled);
@@ -229,7 +224,14 @@ void MPU6050_SetSleepEnabled(_Bool enabled)
 void MPU6050_DmpSetSleepEnabled(_Bool enabled)
 {
 	uint8_t data = enabled ? 0x41 : 0x01;
-	while (WriteByte(MPU6050_ADDRESS, MPU6050_RA_PWR_MGMT_1, data) == HAL_BUSY);
+	if (WriteByte(MPU6050_ADDRESS, MPU6050_RA_PWR_MGMT_1, data) == HAL_OK)
+	{
+		return;
+	}
+	
+	HAL_I2C_DeInit(&hi2c1);
+	HAL_I2C_Init(&hi2c1);
+	WriteByte(MPU6050_ADDRESS, MPU6050_RA_PWR_MGMT_1, data);
 }
 
 void MPU6050_SetClockSource(uint8_t source)
@@ -330,7 +332,7 @@ _Bool MPU6050_DmpInit(void)
 
 	WriteBits(MPU6050_ADDRESS, 0x6A, 2, 3, 0x07); // full SIGNAL_PATH_RESET: with another 100ms delay
 	
-	HAL_Delay(100);				 
+	HAL_Delay(100);
 	
 	WriteByte(MPU6050_ADDRESS, 0x6B, 0x01); // 1000 0001 PWR_MGMT_1:Clock Source Select PLL_X_gyro
 
@@ -350,6 +352,9 @@ _Bool MPU6050_DmpInit(void)
 	
 	MPU6050_WriteMemoryBlock(DmpMemory, MPU6050_DMP_CODE_SIZE, 0, 0);
 	
+	uint8_t dmpUpdate[2] = { 0x00, MPU6050_DMP_FIFO_RATE_DIVISOR };
+	MPU6050_WriteMemoryBlock(dmpUpdate, 0x02, 0x02, 0x16);
+	
 	WriteWord(MPU6050_ADDRESS, 0x70, 0x0400); // DMP Program Start Address
 	
 	WriteByte(MPU6050_ADDRESS, 0x1B, 0x18); // 0001 1000 GYRO_CONFIG: 3 = +2000 Deg/sec
@@ -358,23 +363,43 @@ _Bool MPU6050_DmpInit(void)
 	
 	WriteByte(MPU6050_ADDRESS, 0x38, 0x02); // 0000 0010 INT_ENABLE: RAW_DMP_INT_EN on
 	
-	WriteBit(MPU6050_ADDRESS, 0x6A, 2, 1);			// Reset FIFO one last time just for kicks. (MPUi2cWrite reads 0x6A first and only alters 1 bit and then saves the byte)
+	WriteBit(MPU6050_ADDRESS, 0x6A, 2, 1);  // Reset FIFO one last time just for kicks. (MPUi2cWrite reads 0x6A first and only alters 1 bit and then saves the byte)
 
 	MPU6050_SetDMPEnabled(0); // disable DMP for compatibility with the MPU6050 library
 	
 	return 0;
 }
 
+static volatile uint8_t SampleCount = MPU6050_DMP_FIFO_RATE_DIVISOR;
+
 void MPU6050_DmpOnIntGetCurrentFIFOPacket(uint8_t* fifoBuffer)
 {
-	uint16_t count = MPU6050_GetFIFOCount();
-	if (count == MPU6050_DMP_PACKET_SIZE)
+	if (SampleCount >= MPU6050_DMP_FIFO_RATE_DIVISOR)
 	{
-		HAL_I2C_Mem_Read_DMA(&hi2c1, MPU6050_ADDRESS, MPU6050_RA_FIFO_R_W, 1, fifoBuffer, MPU6050_DMP_PACKET_SIZE);
+		uint16_t count;
+		if (ReadWord(MPU6050_ADDRESS, MPU6050_RA_FIFO_COUNTH, &count) == HAL_OK)
+		{
+			if (count == MPU6050_DMP_PACKET_SIZE)
+			{
+				HAL_I2C_Mem_Read_DMA(&hi2c1, MPU6050_ADDRESS, MPU6050_RA_FIFO_R_W, 1, fifoBuffer, MPU6050_DMP_PACKET_SIZE);
+				SampleCount = 0;
+			}
+			else if (count > MPU6050_DMP_PACKET_SIZE)
+			{
+				WriteByte(MPU6050_ADDRESS, MPU6050_RA_USER_CTRL, 0xC4);
+				SampleCount = 0;
+			}
+		}
+		else
+		{
+			HAL_I2C_DeInit(&hi2c1);
+			HAL_I2C_Init(&hi2c1);
+			SampleCount = 0;
+		}
 	}
-	else if (count > MPU6050_DMP_PACKET_SIZE)
+	else
 	{
-		MPU6050_ResetFIFO();
+		SampleCount++;
 	}
 }
 
